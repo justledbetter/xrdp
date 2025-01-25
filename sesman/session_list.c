@@ -155,13 +155,13 @@ x_server_running_check_ports(int display)
     int x_running;
     int sck;
 
-    g_sprintf(text, "/tmp/.X11-unix/X%d", display);
+    g_snprintf(text, sizeof(text), X11_UNIX_SOCKET_STR, display);
     x_running = g_file_exist(text);
 
     if (!x_running)
     {
         LOG(LOG_LEVEL_DEBUG, "Did not find a running X server at %s", text);
-        g_sprintf(text, "/tmp/.X%d-lock", display);
+        g_snprintf(text, sizeof(text), "/tmp/.X%d-lock", display);
         x_running = g_file_exist(text);
     }
 
@@ -170,7 +170,7 @@ x_server_running_check_ports(int display)
         LOG(LOG_LEVEL_DEBUG, "Did not find a running X server at %s", text);
         if ((sck = g_tcp_socket()) != -1)
         {
-            g_sprintf(text, "59%2.2d", display);
+            g_snprintf(text, sizeof(text), "59%2.2d", display);
             x_running = g_tcp_bind(sck, text);
             g_tcp_close(sck);
         }
@@ -181,7 +181,7 @@ x_server_running_check_ports(int display)
         LOG(LOG_LEVEL_DEBUG, "Did not find a running X server at %s", text);
         if ((sck = g_tcp_socket()) != -1)
         {
-            g_sprintf(text, "60%2.2d", display);
+            g_snprintf(text, sizeof(text), "60%2.2d", display);
             x_running = g_tcp_bind(sck, text);
             g_tcp_close(sck);
         }
@@ -192,7 +192,7 @@ x_server_running_check_ports(int display)
         LOG(LOG_LEVEL_DEBUG, "Did not find a running X server at %s", text);
         if ((sck = g_tcp_socket()) != -1)
         {
-            g_sprintf(text, "62%2.2d", display);
+            g_snprintf(text, sizeof(text), "62%2.2d", display);
             x_running = g_tcp_bind(sck, text);
             g_tcp_close(sck);
         }

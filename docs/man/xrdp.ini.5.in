@@ -50,7 +50,7 @@ If set to \fB1\fR, \fBtrue\fR or \fByes\fR this option enables compression of bu
 .TP
 \fBkey_file\fP=\fI/path/to/private_key\fP
 Set location of TLS certificate and private key. They must be written in PEM format.
-If not specified, defaults to \fB@sysconfdir@/xrdp/cert.pem\fP, \fB@sysconfdir@/xrdp/key.pem\fP.
+If not specified, defaults to \fB@sysconfdir@/@sysconfsubdir@/cert.pem\fP, \fB@sysconfdir@/@sysconfsubdir@/key.pem\fP.
 
 This parameter is effective only if \fBsecurity_layer\fP is set to \fBtls\fP or \fBnegotiate\fP.
 
@@ -381,19 +381,34 @@ Specifies the session type. The default, \fI0\fR, is Xvnc,
 and \fI20\fR is Xorg with xorgxrdp modules.
 
 .TP
-\fBchansrvport\fR=\fBDISPLAY(\fR\fIn\fR\fB)\fR|\fI/path/to/domain-socket\fR
+\fBchansrvport\fR=\fBDISPLAY(\fR\fIn\fR\fB)\fR|\fBDISPLAY(\fR\fIn,u\fR\fB)\fR||\fI/path/to/domain-socket\fR
 Asks xrdp to connect to a manually started \fBxrdp-chansrv\fR instance.
 This can be useful if you wish to use to use xrdp to connect to a VNC session
 which has been started other than by \fBxrdp-sesman\fR, as you can then make
 use of \fBxrdp\-chansrv\fR facilities in the VNC session.
 
-The first form of this setting is recommended, replacing \fIn\fR with the
-X11 display number of the session.
+Either the first or second form of this setting is recommended. Replace
+\fIn\fR with the X11 display number of the session, and (if applicable)
+\fIu\fR with the numeric ID of the session. The second form is only
+required if \fBxrdp\fR is unable to determine the session uid from the
+other values in the connection block.
 
 .TP
 \fBkeycode_set\fR=\fI<string>\fR
 [Xorg only] Asks for the specified keycode set to be used by the X server.
 Normally "evdev" or "base". The default should be correct for your system.
+
+.TP
+\fBh264_frame_interval\fR=\fI<integer>\fR
+[Xorg only] Specify frame capture interval for H.264 captures in milliseconds.
+
+.TP
+\fBrfx_frame_interval\fR=\fI<integer>\fR
+[Xorg only] Specify frame capture interval for RemoteFX captures in milliseconds.
+
+.TP
+\fBnormal_frame_interval\fR=\fI<integer>\fR
+[Xorg only] Specify frame capture interval for normal captures in milliseconds.
 
 .SH "EXAMPLES"
 This is an example \fBxrdp.ini\fR:
@@ -411,6 +426,9 @@ password=ask
 ip=127.0.0.1
 port=-1
 code=20
+h264_frame_interval=16
+rfx_frame_interval=32
+normal_frame_interval=40
 
 [vnc-any]
 name=vnc-any
@@ -422,7 +440,7 @@ password={base64}cGFzc3dvcmQhCg==
 .fi
 
 .SH "FILES"
-@sysconfdir@/xrdp/xrdp.ini
+@sysconfdir@/@sysconfsubdir@/xrdp.ini
 
 .SH "SEE ALSO"
 .BR xrdp (8),

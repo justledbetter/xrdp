@@ -37,6 +37,21 @@
                           ((d) >= 'a' && (d) <= 'f') ? (d) - 'a' + 10 : \
                           (d) - 'A' + 10)
 
+/*
+ * Struct representing the contents of a km file [General] section
+ */
+struct km_general
+{
+    unsigned int version;
+    int caps_lock_supported;
+};
+
+const struct km_general km_general_default =
+{
+    .version = 0,
+    .caps_lock_supported = 1
+};
+
 /*****************************************************************************/
 struct xrdp_key_info *
 get_key_info_from_kbd_event(int keyboard_flags, int key_code, int *keys,
@@ -53,6 +68,9 @@ get_key_info_from_kbd_event(int keyboard_flags, int key_code, int *keys,
     rv = 0;
 
     index = scancode_to_index(SCANCODE_FROM_KBD_EVENT(key_code, keyboard_flags));
+    // Don't take caps_lock into account if the keymap doesn't support it.
+    caps_lock = caps_lock && keymap->caps_lock_supported;
+
     if (index >= 0)
     {
         // scancode_to_index() guarantees to map numlock scancodes
@@ -98,46 +116,6 @@ get_key_info_from_kbd_event(int keyboard_flags, int key_code, int *keys,
     }
 
     return rv;
-}
-
-/*****************************************************************************/
-int
-get_keysym_from_kbd_event(int keyboard_flags, int key_code, int *keys,
-                          int caps_lock, int num_lock, int scroll_lock,
-                          struct xrdp_keymap *keymap)
-{
-    struct xrdp_key_info *ki;
-
-    ki = get_key_info_from_kbd_event(keyboard_flags, key_code, keys,
-                                     caps_lock, num_lock, scroll_lock,
-                                     keymap);
-
-    if (ki == 0)
-    {
-        return 0;
-    }
-
-    return ki->sym;
-}
-
-/*****************************************************************************/
-char32_t
-get_char_from_kbd_event(int keyboard_flags, int key_code, int *keys,
-                        int caps_lock, int num_lock, int scroll_lock,
-                        struct xrdp_keymap *keymap)
-{
-    struct xrdp_key_info *ki;
-
-    ki = get_key_info_from_kbd_event(keyboard_flags, key_code, keys,
-                                     caps_lock, num_lock, scroll_lock,
-                                     keymap);
-
-    if (ki == 0)
-    {
-        return 0;
-    }
-
-    return ki->chr;
 }
 
 /*****************************************************************************/
@@ -354,6 +332,101 @@ get_keymaps(int keylayout, struct xrdp_keymap *keymap)
 }
 
 /*****************************************************************************/
+/**
+ * Parses the [General] section in a keymap file
+ * @param tfile TOML file in memory
+ * @param general result (initialised to defaults)
+ */
+static void
+parse_km_general(toml_table_t *tfile, struct km_general *general)
+{
+    toml_table_t *section;
+
+    if (tfile != NULL && (section = toml_table_in(tfile, "General")) != NULL)
+    {
+        toml_datum_t d;
+        if ((d = toml_int_in(section, "version")).ok)
+        {
+            general->version = d.u.i;
+        }
+        if ((d = toml_bool_in(section, "caps_lock_supported")).ok)
+        {
+            general->caps_lock_supported = d.u.b;
+        }
+    }
+}
+
+/*****************************************************************************/
+/**
+ * Loads the [General] section only from a TOML file
+ * @param filename Name of TOML file
+ * @param quiet Set true to not log errors
+ * @param[out] km_general Contents of [General] section. Defaults are provided.
+ * @return 0 if the operation was successful
+ */
+static int
+km_load_file_general(const char *filename, int quiet,
+                     struct km_general *general)
+{
+    FILE *fp;
+    toml_table_t *tfile;
+    char errbuf[200];
+    int rv = 1;
+
+    *general = km_general_default;
+
+    if ((fp = fopen(filename, "r")) == NULL)
+    {
+        if (!quiet)
+        {
+            LOG(LOG_LEVEL_ERROR, "Error loading keymap file %s (%s)",
+                filename, g_get_strerror());
+        }
+    }
+    else
+    {
+        tfile = toml_parse_file(fp, errbuf, sizeof(errbuf));
+        fclose(fp);
+        if (tfile == NULL)
+        {
+            if (!quiet)
+            {
+                LOG(LOG_LEVEL_ERROR, "Error in keymap file %s - %s",
+                    filename, errbuf);
+            }
+        }
+        else
+        {
+            parse_km_general(tfile, general);
+            rv = 0;
+            toml_free(tfile);
+        }
+    }
+
+    return rv;
+}
+
+/*****************************************************************************/
+/**
+ * Boolean to test if a keylayout supports the caps_lock modifier key
+ * @param keylayout keyboardLayout from TS_UD_CS_CORE (see [MS-RDPBCGR])
+ * @return True if layout supports caps lock
+ */
+static int
+keylayout_supports_caps_lock(int keylayout)
+{
+    char filename[256];
+    struct km_general general;
+
+    g_snprintf(filename, sizeof(filename),
+               XRDP_CFG_PATH "/km-%08x.toml", keylayout);
+
+    (void)km_load_file_general(filename, 1, &general);
+
+    return general.caps_lock_supported;
+}
+
+/*****************************************************************************/
 int
 km_load_file(const char *filename, struct xrdp_keymap *keymap)
 {
@@ -361,6 +434,7 @@ km_load_file(const char *filename, struct xrdp_keymap *keymap)
     toml_table_t *tfile;
     char errbuf[200];
     int rv = 0;
+    struct km_general general = km_general_default;
 
     if ((fp = fopen(filename, "r")) == NULL)
     {
@@ -382,16 +456,23 @@ km_load_file(const char *filename, struct xrdp_keymap *keymap)
         /* Clear the whole keymap */
         memset(keymap, 0, sizeof(*keymap));
 
+        /* Check to see if we should expect caps lock entries */
+        parse_km_general(tfile, &general);
+        keymap->caps_lock_supported = general.caps_lock_supported;
+
         /* read the keymap sections */
         km_read_section(tfile, "noshift", keymap->keys_noshift);
         km_read_section(tfile, "shift", keymap->keys_shift);
         km_read_section(tfile, "altgr", keymap->keys_altgr);
         km_read_section(tfile, "shiftaltgr", keymap->keys_shiftaltgr);
-        km_read_section(tfile, "capslock", keymap->keys_capslock);
-        km_read_section(tfile, "capslockaltgr", keymap->keys_capslockaltgr);
-        km_read_section(tfile, "shiftcapslock", keymap->keys_shiftcapslock);
-        km_read_section(tfile, "shiftcapslockaltgr",
-                        keymap->keys_shiftcapslockaltgr);
+        if (keymap->caps_lock_supported)
+        {
+            km_read_section(tfile, "capslock", keymap->keys_capslock);
+            km_read_section(tfile, "capslockaltgr", keymap->keys_capslockaltgr);
+            km_read_section(tfile, "shiftcapslock", keymap->keys_shiftcapslock);
+            km_read_section(tfile, "shiftcapslockaltgr",
+                            keymap->keys_shiftcapslockaltgr);
+        }
 
         /* The numlock map is much smaller and offset by
          * SCANCODE_MIX_NUMLOCK. Read the section into a temporary
@@ -657,8 +738,16 @@ xrdp_init_xkb_layout(struct xrdp_client_info *client_info)
     // Initialise the rules and a few keycodes for xorgxrdp
     snprintf(client_info->xkb_rules, sizeof(client_info->xkb_rules),
              "%s", scancode_get_xkb_rules());
-    client_info->x11_keycode_caps_lock =
-        scancode_to_x11_keycode(SCANCODE_CAPS_KEY);
+    if (keylayout_supports_caps_lock(client_info->keylayout))
+    {
+        client_info->x11_keycode_caps_lock =
+            scancode_to_x11_keycode(SCANCODE_CAPS_KEY);
+    }
+    else
+    {
+        LOG(LOG_LEVEL_INFO, "xrdp_init_xkb_layout: caps lock is not supported");
+        client_info->x11_keycode_caps_lock = 0;
+    }
     client_info->x11_keycode_num_lock =
         scancode_to_x11_keycode(SCANCODE_NUMLOCK_KEY);
     client_info->x11_keycode_scroll_lock =

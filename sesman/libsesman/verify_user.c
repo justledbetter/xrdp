@@ -225,7 +225,7 @@ auth_check_pwd_chg(const char *user)
     }
 
     /* check if we need a pwd change */
-    now = g_time1();
+    now = time(NULL);
     today = now / SECS_PER_DAY;
 
     if (stp->sp_expire == -1)
@@ -306,7 +306,7 @@ auth_change_pwd(const char *user, const char *newpwd)
         }
 
         stp->sp_pwdp = g_strdup(hash);
-        today = g_time1() / SECS_PER_DAY;
+        today = time(NULL) / SECS_PER_DAY;
         stp->sp_lstchg = today;
         stp->sp_expire = today + stp->sp_max + stp->sp_inact;
         fd = fopen("/etc/shadow", "rw");
@@ -377,7 +377,7 @@ auth_account_disabled(struct spwd *stp)
         return 1;
     }
 
-    today = g_time1() / SECS_PER_DAY;
+    today = time(NULL) / SECS_PER_DAY;
 
     LOG_DEVEL(LOG_LEVEL_DEBUG, "last   %ld", stp->sp_lstchg);
     LOG_DEVEL(LOG_LEVEL_DEBUG, "min    %ld", stp->sp_min);

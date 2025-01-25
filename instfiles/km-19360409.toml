@@ -2,10 +2,11 @@
 # Key code set: evdev+aliases(qwerty)
 # setxkbmap -rules evdev -model pc105 -layout us -variant dvp -option "" -option compose:102 -option caps:shift -option numpad:sg -option numpad:shift3 -option keypad:hex -option keypad:atm -option kpdl:semi -option lv3:ralt_alt
 # Description: en-US
-# Operating system: Ubuntu 22.04.4 LTS
+# Operating system: Ubuntu 22.04.5 LTS
 
 [General]
 version=2
+caps_lock_supported=true
 
 [noshift]
 01="65307:U+001B"  # Escape

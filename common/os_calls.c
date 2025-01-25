@@ -1805,7 +1805,7 @@ g_set_wait_obj(tintptr obj)
         return 0;
     }
     fd = obj >> 16;
-    to_write = 4;
+    to_write = sizeof(buf);
     written = 0;
     while (written < to_write)
     {
@@ -1823,12 +1823,13 @@ g_set_wait_obj(tintptr obj)
                 return 1;
             }
         }
-        else if (error > 0)
+        else if (error > 0 && error <= (int)sizeof(buf))
         {
             written += error;
         }
         else
         {
+            // Shouldn't get here.
             return 1;
         }
     }
@@ -2045,18 +2046,6 @@ g_obj_wait(tintptr *read_objs, int rcount, tintptr *write_objs, int wcount,
 void
 g_random(char *data, int len)
 {
-#if defined(_WIN32)
-    int index;
-
-    srand(g_time1());
-
-    for (index = 0; index < len; index++)
-    {
-        data[index] = (char)rand(); /* rand returns a number between 0 and
-                                   RAND_MAX */
-    }
-
-#else
     int fd;
 
     memset(data, 0x44, len);
@@ -2075,8 +2064,6 @@ g_random(char *data, int len)
 
         close(fd);
     }
-
-#endif
 }
 
 /*****************************************************************************/
@@ -2311,15 +2298,27 @@ g_file_set_cloexec(int fd, int status)
 struct list *
 g_get_open_fds(int min, int max)
 {
+    if (min < 0)
+    {
+        min = 0;
+    }
+
     struct list *result = list_create();
 
     if (result != NULL)
     {
         if (max < 0)
         {
-            max = sysconf(_SC_OPEN_MAX);
+            // sysconf() returns a long. Limit it to a sane value
+#define SANE_MAX 100000
+            long sc_max = sysconf(_SC_OPEN_MAX);
+            max = (sc_max < 0) ? 0 :
+                  (sc_max > (long)SANE_MAX) ? SANE_MAX :
+                  sc_max;
+#undef SANE_MAX
         }
 
+        // max and min are now both guaranteed to be >= 0
         if (max > min)
         {
             struct pollfd *fds = g_new0(struct pollfd, max - min);
@@ -2344,6 +2343,7 @@ g_get_open_fds(int min, int max)
                         // Descriptor is open
                         if (!list_add_item(result, i))
                         {
+                            g_free(fds);
                             goto nomem;
                         }
                     }
@@ -3778,51 +3778,21 @@ g_check_user_in_group(const char *username, int gid, int *ok)
 #endif // HAVE_GETGROUPLIST
 
 /*****************************************************************************/
-/* returns the time since the Epoch (00:00:00 UTC, January 1, 1970),
-   measured in seconds.
-   for windows, returns the number of seconds since the machine was
-   started. */
-int
-g_time1(void)
+unsigned int
+g_get_elapsed_ms(void)
 {
-#if defined(_WIN32)
-    return GetTickCount() / 1000;
-#else
-    return time(0);
-#endif
-}
+    unsigned int result = 0;
+    struct timespec tp;
 
-/*****************************************************************************/
-/* returns the number of milliseconds since the machine was
-   started. */
-int
-g_time2(void)
-{
-#if defined(_WIN32)
-    return (int)GetTickCount();
-#else
-    struct tms tm;
-    clock_t num_ticks = 0;
-    g_memset(&tm, 0, sizeof(struct tms));
-    num_ticks = times(&tm);
-    return (int)(num_ticks * 10);
-#endif
-}
+    if (clock_gettime(CLOCK_MONOTONIC, &tp) == 0)
+    {
+        result = (unsigned int)tp.tv_sec * 1000;
+        // POSIX 1003.1-2004 specifies that tv_nsec is a long (i.e. a
+        // signed type), but can only contain [0..999,999,999]
+        result += tp.tv_nsec / 1000000;
+    }
 
-/*****************************************************************************/
-/* returns time in milliseconds, uses gettimeofday
-   does not work in win32 */
-int
-g_time3(void)
-{
-#if defined(_WIN32)
-    return 0;
-#else
-    struct timeval tp;
-
-    gettimeofday(&tp, 0);
-    return (tp.tv_sec * 1000) + (tp.tv_usec / 1000);
-#endif
+    return result;
 }
 
 /******************************************************************************/

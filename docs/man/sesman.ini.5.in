@@ -98,7 +98,33 @@ stdout. Use for debugging only\fR
 
 It is ignored in the [ChansrvLogging] section
 since the channel server creates one log file per display and instead uses the
-following log file naming convention \fIxrdp-chansrv.${DISPLAY}.log\fR
+following log file naming convention \fIxrdp-chansrv.${DISPLAY}.log\fR. For
+details of the chansrv log file location, see \fBLogFilePath\fR.
+
+.TP
+\fBLogFilePath\fR=\fIstring\fR
+Directory for storing the chansrv log file. This setting only applies to
+chansrv. The sesman log file is always created in \fI@localstatedir@/log\fR.
+
+Created if it doesn't exist.
+If first character is not a '/', this is relative to $HOME, where
+chansrv is normally started.
+
+.RS
+The following substitutions are made in this string:-
+    %U - Username
+    %u - Numeric UID
+    %% - Percent character
+
+This is most useful if you are using NFS-mounted home directories, and
+wish to move the chansrv log file to the local disk.
+
+If this parameter isn't specified, the log file is stored in one of
+the following locations :-
+    -   $CHANSRV_LOG_PATH
+    -   $XDG_DATA_HOME/xrdp
+    -   $HOME/.local/share/xrdp
+.RE
 
 .TP
 \fBLogLevel\fR=\fIlevel\fR
@@ -355,6 +381,15 @@ drive. To fix this, consult the docs for your chosen desktop.
 .RE
 
 .TP
+\fBFuseMountNameColonCharReplacement\fR=\fIstring\fR
+Character to replace colon in redirected drive mount point names.
+If not specified no colon will not be replaced.
+If empty then colon will be replaced by null character.
+If longer than one character, only first character used.
+Only last colon replaced.
+.RE
+
+.TP
 \fBFuseDirectIO\fR=\fI[false|true]\fR
 Defaults to \fIfalse\fR. Set to \fItrue\fR to disable page caching in
 FUSE when opening files on a redirected drive. Direct I/O can impact
@@ -414,7 +449,7 @@ All entries in the \fB[SessionVariables]\fR section are set as
 environment variables in the user's session.
 
 .SH "FILES"
-@sysconfdir@/xrdp/sesman.ini
+@sysconfdir@/@sysconfsubdir@/sesman.ini
 
 .SH "SEE ALSO"
 .BR xrdp-sesman (8),

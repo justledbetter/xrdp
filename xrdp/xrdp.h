@@ -442,14 +442,6 @@ get_key_info_from_kbd_event(int keyboard_flags, int key_code, int *keys,
                             int caps_lock, int num_lock, int scroll_lock,
                             struct xrdp_keymap *keymap);
 int
-get_keysym_from_kbd_event(int keyboard_flags, int key_code, int *keys,
-                          int caps_lock, int num_lock, int scroll_lock,
-                          struct xrdp_keymap *keymap);
-char32_t
-get_char_from_kbd_event(int keyboard_flags, int key_code, int *keys,
-                        int caps_lock, int num_lock, int scroll_lock,
-                        struct xrdp_keymap *keymap);
-int
 get_keymaps(int keylayout, struct xrdp_keymap *keymap);
 
 int
@@ -497,8 +489,8 @@ struct display_control_monitor_layout_data
 {
     struct display_size_description description;
     enum display_resize_state state;
-    int last_state_update_timestamp;
-    int start_time;
+    unsigned int last_state_update_timestamp;
+    unsigned int start_time;
     /// This flag is set if the state machine needs to
     /// shutdown/startup EGFX
     int using_egfx;

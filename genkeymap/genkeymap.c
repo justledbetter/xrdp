@@ -92,8 +92,8 @@ usage(const char *programname, int status)
 {
     fprintf(stderr, "Usage: %s [ -k keycode_set] [-c comment] [-c comment...]"
             " out_filename\n", programname);
-    fprintf(stderr, "Example: %s -r evdev -c \"en-US pc104 keyboard\""
-            " /etc/xrdp/km-00000409.toml\n", programname);
+    fprintf(stderr, "Example: %s -r evdev -c \"en-US pc104 keyboard\" ", programname);
+    fprintf(stderr, XRDP_CFG_PATH "/km-00000409.toml\n");
     exit(status);
 }
 
@@ -319,6 +319,34 @@ output_file_section(FILE *outf,
 
 /*****************************************************************************/
 /**
+ * Determine is caps-lock is supported. Some layouts (e.g. Colemak) do not
+ * support this key.
+ *
+ * @param dpy X display
+ * @reurn boolean
+ */
+static int
+is_caps_lock_supported(Display *dpy)
+{
+    char dummy[4];
+    KeySym ks;
+    XKeyPressedEvent e =
+    {
+        .type = KeyPress,
+        .serial = 16,
+        .send_event = True,
+        .display = dpy,
+        .state = 0,
+        .keycode = scancode_to_x11_keycode(SCANCODE_CAPS_KEY),
+        .same_screen = True
+    };
+
+    (void)XLookupString(&e, dummy, sizeof(dummy), &ks, NULL);
+    return (ks == XK_Caps_Lock || ks == XK_Eisu_toggle);
+}
+
+/*****************************************************************************/
+/**
  * Main
  * @param argc Argument count
  * @param argv Pointers to arguments
@@ -345,6 +373,7 @@ int main(int argc, char **argv)
     const char *keycode_set = NULL;
     struct kbd_info *kbd_info = NULL;
     int status = 1;
+    int caps_lock_supported;
 
     setlocale(LC_CTYPE, "");
     if (strrchr(argv[0], '/') != NULL)
@@ -418,6 +447,8 @@ int main(int argc, char **argv)
         goto finish;
     }
 
+    caps_lock_supported = is_caps_lock_supported(dpy);
+
     fprintf(outf, "# Created by %s V" PACKAGE_VERSION
             "\n# Key code set: %s\n",
             programname, keycode_set);
@@ -430,10 +461,18 @@ int main(int argc, char **argv)
     }
 
     fprintf(outf, "\n[General]\nversion=" KEYMAP_FILE_FORMAT_VERSION "\n");
+    fprintf(outf, "caps_lock_supported=%s\n",
+            (caps_lock_supported) ? "true" : "false");
 
     for (idx = 0; idx < NUM_STATES; idx++) /* Sections and states */
     {
-        output_file_section(outf, dpy, sections[idx], states[idx]);
+        int mod_state =  states[idx];
+        if (!caps_lock_supported && ((mod_state & 2) != 0))
+        {
+            // Skip this section as it's for caps lock
+            continue;
+        }
+        output_file_section(outf, dpy, sections[idx], mod_state);
     }
 
     status = 0; // Successful run

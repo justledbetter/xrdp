@@ -168,6 +168,7 @@ param=96
 #FuseMountName=/run/user/%u/thinclient_drives
 #FuseMountName=/media/thinclient_drives/%U/thinclient_drives
 FuseMountName=thinclient_drives
+#FuseMountNameColonCharReplacement=
 ; this value allows only the user to access their own mapped drives.
 ; Make this more permissive (e.g. 022) if required.
 FileUmask=077
@@ -204,6 +205,11 @@ EnableSyslog=true
 #EnableConsole=false
 #ConsoleLevel=INFO
 #EnableProcessId=false
+; Log file path
+; Set this to move the log file away from its default location. You may want
+; to do this for (e.g.) NFS-mounted home directories
+; See sesman.ini(5) for the format of this parameter
+#LogFilePath=/run/user/%u/xrdp
 
 [ChansrvLoggingPerLogger]
 ; Note: per logger configuration is only used if xrdp is built with

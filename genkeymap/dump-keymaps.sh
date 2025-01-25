@@ -18,7 +18,10 @@ kbgen()
     desc="$2"
     os="$3"
     shift 3
-    setxkbmap "$@"
+    if ! setxkbmap "$@"; then
+        echo "Failed to run setxkbmap $*" >&2
+        return 1
+    fi
     ./xrdp-genkeymap \
         -c "Description: $desc" \
         -c "Operating system: $os" \
@@ -65,10 +68,12 @@ if [ -z "$os" ]; then
     os="Unknown"
 fi
 
+kbgen 0405 "cs-CZ"        "$os" -model pc105 -layout cz
 kbgen 0406 "da-DK"        "$os" -model pc105 -layout dk
 kbgen 0407 "de-DE"        "$os" -model pc104 -layout de
 kbgen 0409 "en-US"        "$os" -model pc104 -layout us
-kbgen 10409 "en-US"       "$os" -model pc104 -layout dvorak
+kbgen 10409 "en-US"       "$os" -model pc104 -layout us -variant dvorak
+kbgen 60409 "en-US"       "$os" -model pc104 -layout us -variant colemak
 kbgen 040a "es-ES_tradnl" "$os" -model pc105 -layout es
 kbgen 040b "fi-FI"        "$os" -model pc105 -layout 'fi'
 kbgen 040c "fr-FR"        "$os" -model pc105 -layout fr

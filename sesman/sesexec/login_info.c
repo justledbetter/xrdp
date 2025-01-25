@@ -57,8 +57,8 @@ log_authfail_message(const char *username, const char *ip_addr)
     {
         ip_addr = "unknown";
     }
-    LOG(LOG_LEVEL_INFO, "AUTHFAIL: user=%s ip=%s time=%d",
-        username, ip_addr, g_time1());
+    LOG(LOG_LEVEL_INFO, "AUTHFAIL: user=%s ip=%s time=%ld",
+        username, ip_addr, (long)time(NULL));
 }
 
 /******************************************************************************/

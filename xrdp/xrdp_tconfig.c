@@ -47,6 +47,7 @@
 #define X264_DEFAULT_PROFILE "main"
 #define X264_DEFAULT_FPS_NUM 24
 #define X264_DEFAULT_FPS_DEN 1
+#define X264_DEFAULT_THREADS 1 /* not to exhaust CPU threads for 1 user */
 
 const char *
 tconfig_codec_order_to_str(
@@ -67,6 +68,7 @@ tconfig_codec_order_to_str(
             if (p > 0)
             {
                 buff[p++] = ',';
+                buff[p++] = ' ';
             }
 
             switch (codec_order->codecs[i])
@@ -94,6 +96,95 @@ tconfig_codec_order_to_str(
     }
 
     return buff;
+}
+
+static int
+tconfig_load_gfx_openh264_ct(toml_table_t *tfile, const int connection_type,
+                             struct xrdp_tconfig_gfx_openh264_param *param)
+{
+    TCLOG(LOG_LEVEL_TRACE, "[OpenH264]");
+
+    if (connection_type > NUM_CONNECTION_TYPES)
+    {
+        TCLOG(LOG_LEVEL_ERROR, "[OpenH264] Invalid connection type is given");
+        return 1;
+    }
+
+    toml_table_t *oh264 = toml_table_in(tfile, "OpenH264");
+    if (!oh264)
+    {
+        TCLOG(LOG_LEVEL_WARNING, "[OpenH264] OpenH264 params are not defined");
+        return 1;
+    }
+
+    toml_table_t *oh264_ct =
+        toml_table_in(oh264, rdpbcgr_connection_type_names[connection_type]);
+    toml_datum_t datum;
+
+    if (!oh264_ct)
+    {
+        TCLOG(LOG_LEVEL_WARNING, "OpenH264 params for connection type [%s] is not defined",
+              rdpbcgr_connection_type_names[connection_type]);
+        return 1;
+    }
+
+    /* EnableFrameSkip */
+    datum = toml_bool_in(oh264_ct, "EnableFrameSkip");
+    if (datum.ok)
+    {
+        param[connection_type].EnableFrameSkip = datum.u.b;
+    }
+    else if (connection_type == 0)
+    {
+        TCLOG(LOG_LEVEL_WARNING,
+              "[OpenH264.%s] EnableFrameSkip is not set, adopting the default value [0]",
+              rdpbcgr_connection_type_names[connection_type]);
+        param[connection_type].EnableFrameSkip = 0;
+    }
+
+    /* TargetBitrate */
+    datum = toml_int_in(oh264_ct, "TargetBitrate");
+    if (datum.ok)
+    {
+        param[connection_type].TargetBitrate = datum.u.i;
+    }
+    else if (connection_type == 0)
+    {
+        TCLOG(LOG_LEVEL_WARNING,
+              "[OpenH264.%s] TargetBitrate is not set, adopting the default value [0]",
+              rdpbcgr_connection_type_names[connection_type]);
+        param[connection_type].TargetBitrate = 0;
+    }
+
+    /* MaxBitrate */
+    datum = toml_int_in(oh264_ct, "MaxBitrate");
+    if (datum.ok)
+    {
+        param[connection_type].MaxBitrate = datum.u.i;
+    }
+    else if (connection_type == 0)
+    {
+        TCLOG(LOG_LEVEL_WARNING,
+              "[OpenH264.%s] MaxBitrate is not set, adopting the default value [0]",
+              rdpbcgr_connection_type_names[connection_type]);
+        param[connection_type].MaxBitrate = 0;
+    }
+
+    /* MaxFrameRate */
+    datum = toml_double_in(oh264_ct, "MaxFrameRate");
+    if (datum.ok)
+    {
+        param[connection_type].MaxFrameRate = (float)datum.u.d;
+    }
+    else if (connection_type == 0)
+    {
+        TCLOG(LOG_LEVEL_WARNING,
+              "[OpenH264.%s] MaxFrameRate is not set, adopting the default value [0]",
+              rdpbcgr_connection_type_names[connection_type]);
+        param[connection_type].MaxFrameRate = 0;
+    }
+
+    return 0;
 }
 
 static int
@@ -242,6 +333,76 @@ tconfig_load_gfx_x264_ct(toml_table_t *tfile, const int connection_type,
               rdpbcgr_connection_type_names[connection_type],
               X264_DEFAULT_FPS_DEN);
         param[connection_type].fps_den = X264_DEFAULT_FPS_DEN;
+    }
+
+    /* threads */
+    datum = toml_int_in(x264_ct, "threads");
+    if (datum.ok)
+    {
+        if (datum.u.i >= 0)
+        {
+            param[connection_type].threads = datum.u.i;
+        }
+        else
+        {
+            TCLOG(LOG_LEVEL_WARNING,
+                  "[x264.%s] an invalid value (< 0) is specified for threads, "
+                  "adopting the default value [%d]",
+                  rdpbcgr_connection_type_names[connection_type],
+                  X264_DEFAULT_THREADS);
+            param[connection_type].threads = X264_DEFAULT_THREADS;
+        }
+    }
+    else if (connection_type == 0)
+    {
+        TCLOG(LOG_LEVEL_WARNING,
+              "[x264.%s] threads is not set, adopting the default value [%d]",
+              rdpbcgr_connection_type_names[connection_type],
+              X264_DEFAULT_THREADS);
+        param[connection_type].threads = X264_DEFAULT_THREADS;
+    }
+
+    return 0;
+}
+
+static int tconfig_load_gfx_h264_encoder(toml_table_t *tfile, struct xrdp_tconfig_gfx *config)
+{
+    TCLOG(LOG_LEVEL_TRACE, "[codec]");
+
+    toml_table_t *codec;
+    int valid_encoder_found = 0;
+
+    if ((codec = toml_table_in(tfile, "codec")) != NULL)
+    {
+        toml_datum_t h264_encoder = toml_string_in(codec, "h264_encoder");
+
+        if (h264_encoder.ok)
+        {
+            if (g_strcasecmp(h264_encoder.u.s, "x264") == 0)
+            {
+                TCLOG(LOG_LEVEL_DEBUG, "[codec] h264_encoder = x264");
+                valid_encoder_found = 1;
+                config->h264_encoder = XTC_H264_X264;
+            }
+            if (g_strcasecmp(h264_encoder.u.s, "OpenH264") == 0)
+            {
+                TCLOG(LOG_LEVEL_DEBUG, "[codec] h264_encoder = OpenH264");
+                valid_encoder_found = 1;
+                config->h264_encoder = XTC_H264_OPENH264;
+            }
+
+            free(h264_encoder.u.s);
+        }
+    }
+
+    if (valid_encoder_found == 0)
+    {
+        TCLOG(LOG_LEVEL_WARNING, "[codec] could not get valid H.264 encoder, "
+              "using default \"x264\"");
+
+        /* default to x264 */
+        config->h264_encoder = XTC_H264_X264;
+        return 1;
     }
 
     return 0;
@@ -393,19 +554,20 @@ tconfig_load_gfx(const char *filename, struct xrdp_tconfig_gfx *config)
 
     /* Load GFX codec order */
     tconfig_load_gfx_order(tfile, config);
+    /* Load H.264 encoder */
+    tconfig_load_gfx_h264_encoder(tfile, config);
 
     /* H.264 configuration */
     if (codec_enabled(&config->codec, XTC_H264))
     {
         /* First of all, read the default params */
-        if (tconfig_load_gfx_x264_ct(tfile, 0, config->x264_param) != 0)
-        {
-            /* We can't read the H.264 defaults. Disable H.264 */
-            LOG(LOG_LEVEL_WARNING, "H.264 support will be disabled");
-            disable_codec(&config->codec, XTC_H264);
-            rv = 1;
-        }
-        else
+        int x264_loaded;
+        int oh264_loaded;
+
+        x264_loaded = tconfig_load_gfx_x264_ct(tfile, 0, config->x264_param);
+        oh264_loaded = tconfig_load_gfx_openh264_ct(tfile, 0, config->openh264_param);
+
+        if (x264_loaded == 0)
         {
             /* Copy default params to other connection types, and
              * then override them */
@@ -415,6 +577,36 @@ tconfig_load_gfx(const char *filename, struct xrdp_tconfig_gfx *config)
                 config->x264_param[ct] = config->x264_param[0];
                 tconfig_load_gfx_x264_ct(tfile, ct, config->x264_param);
             }
+        }
+
+        if (oh264_loaded == 0)
+        {
+            /* Copy default params to other connection types, and
+             * then override them */
+            for (int ct = CONNECTION_TYPE_MODEM; ct < NUM_CONNECTION_TYPES;
+                    ct++)
+            {
+                config->openh264_param[ct] = config->openh264_param[0];
+                tconfig_load_gfx_openh264_ct(tfile, ct, config->openh264_param);
+            }
+        }
+
+        if (x264_loaded != 0 && config->h264_encoder == XTC_H264_X264)
+        {
+            /* We can't get x264 defaults. Disable H.264. */
+            TCLOG(LOG_LEVEL_WARNING, "x264 is selected as H.264 encoder but "
+                  "cannot load default config for x264, disabling H.264");
+            disable_codec(&config->codec, XTC_H264);
+            rv = 1;
+        }
+
+        if (oh264_loaded != 0 && config->h264_encoder == XTC_H264_OPENH264)
+        {
+            /* We can't get OpenH264 defaults. Disable H.264. */
+            TCLOG(LOG_LEVEL_WARNING, "OpenH264 is selected as H.264 encoder but "
+                  "cannot load default config for OpenH264, disabling H.264");
+            disable_codec(&config->codec, XTC_H264);
+            rv = 1;
         }
     }
     toml_free(tfile);

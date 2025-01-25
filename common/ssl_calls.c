@@ -1104,15 +1104,12 @@ ssl_tls_accept(struct ssl_tls *self, long ssl_protocols,
         return 1;
     }
     DH_free(dh); // ok to free, copied into ctx by SSL_CTX_set_tmp_dh()
-#else
-    if (!SSL_CTX_set_dh_auto(self->ctx, 1))
-    {
-        LOG(LOG_LEVEL_ERROR, "TLS DHE auto failed to be enabled");
-        dump_ssl_error_stack(self);
-        return 1;
-    }
 #endif
-#if defined(SSL_CTX_set_ecdh_auto)
+
+#if (OPENSSL_VERSION_NUMBER >= 0x10000020L) && \
+    OPENSSL_VERSION_NUMBER < (0x10100000L)
+    // SSL_CTX_set_ecdh_auto() added in OpenSSL 1.0.2 and
+    // removed for OpenSSL 1.1.0
     if (!SSL_CTX_set_ecdh_auto(self->ctx, 1))
     {
         LOG(LOG_LEVEL_WARNING, "TLS ecdh auto failed to be enabled");

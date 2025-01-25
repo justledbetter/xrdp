@@ -2,7 +2,7 @@
 
 AC_PREREQ([2.69])
 AC_INIT([xrdp], [0.10.80], [xrdp-devel@googlegroups.com])
-AC_DEFINE([VERSION_YEAR], 2024, [Copyright year])
+AC_DEFINE([VERSION_YEAR], 2025, [Copyright year])
 AC_CONFIG_HEADERS(config_ac.h:config_ac-h.in)
 AM_INIT_AUTOMAKE([1.7.2 foreign])
 AC_CONFIG_MACRO_DIR([m4])
@@ -175,6 +175,10 @@ AC_ARG_ENABLE(x264, AS_HELP_STRING([--enable-x264],
               [Use x264 library (default: no)]),
               [], [enable_x264=no])
 AM_CONDITIONAL(XRDP_X264, [test x$enable_x264 = xyes])
+AC_ARG_ENABLE(openh264, AS_HELP_STRING([--enable-openh264],
+              [Use Cisco OpenH264 library (default: no)]),
+              [], [enable_openh264=no])
+AM_CONDITIONAL(XRDP_OPENH264, [test x$enable_openh264 = xyes])
 AC_ARG_ENABLE(painter, AS_HELP_STRING([--disable-painter],
               [Do not use included painter library (default: no)]),
               [], [enable_painter=yes])
@@ -453,8 +457,8 @@ fi
 # checking for fuse
 if test "x$enable_fuse" = "xyes"
 then
-  PKG_CHECK_MODULES([FUSE], [fuse >= 2.6], [],
-    [AC_MSG_ERROR([please install libfuse-dev or fuse-devel])])
+  PKG_CHECK_MODULES([FUSE], [fuse3 >= 3.1.0], [],
+    [AC_MSG_ERROR([please install libfuse3-dev or fuse3-devel])])
 fi
 
 # checking for fdk aac
@@ -492,6 +496,8 @@ fi
 AS_IF( [test "x$enable_pixman" = "xyes"] , [PKG_CHECK_MODULES(PIXMAN, pixman-1 >= 0.1.0)] )
 
 AS_IF( [test "x$enable_x264" = "xyes"] , [PKG_CHECK_MODULES(XRDP_X264, x264 >= 0.3.0)] )
+
+AS_IF( [test "x$enable_openh264" = "xyes"] , [PKG_CHECK_MODULES(XRDP_OPENH264, openh264 >= 2.0.0)] )
 
 # checking for TurboJPEG
 if test "x$enable_tjpeg" = "xyes"
@@ -604,6 +610,12 @@ AC_ARG_WITH([pamconfdir],
                   [], [with_pamconfdir="$sysconfdir/pam.d"])
 AC_SUBST([pamconfdir], [$with_pamconfdir])
 
+AC_ARG_WITH([sysconfsubdir],
+  [AS_HELP_STRING([--with-sysconfsubdir=DIR],
+                  [Use subdirectory for config files (default: xrdp)]))],
+                  [], [with_sysconfsubdir="xrdp"])
+AC_SUBST([sysconfsubdir], [$with_sysconfsubdir])
+
 PKG_INSTALLDIR
 
 AC_CHECK_HEADERS([sys/prctl.h uchar.h])
@@ -668,6 +680,7 @@ echo "  jpeg                    $enable_jpeg"
 echo "  turbo jpeg              $enable_tjpeg"
 echo "  rfxcodec                $enable_rfxcodec"
 echo "  x264                    $enable_x264"
+echo "  openh264                $enable_openh264"
 echo "  painter                 $enable_painter"
 echo "  pixman                  $enable_pixman"
 echo "  fuse                    $enable_fuse"
@@ -697,6 +710,7 @@ echo "  exec_prefix             $exec_prefix"
 echo "  libdir                  $libdir"
 echo "  bindir                  $bindir"
 echo "  sysconfdir              $sysconfdir"
+echo "  sysconfdir+subdir       $sysconfdir/$sysconfsubdir"
 echo "  pamconfdir              $pamconfdir"
 echo "  localstatedir           $localstatedir"
 echo "  runstatedir             $runstatedir"

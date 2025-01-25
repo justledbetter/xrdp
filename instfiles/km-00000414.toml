@@ -2,10 +2,11 @@
 # Key code set: evdev+aliases(qwerty)
 # setxkbmap -rules evdev -model pc105 -layout no
 # Description: nb-NO
-# Operating system: Ubuntu 22.04.4 LTS
+# Operating system: Ubuntu 22.04.5 LTS
 
 [General]
 version=2
+caps_lock_supported=true
 
 [noshift]
 01="65307:U+001B"  # Escape

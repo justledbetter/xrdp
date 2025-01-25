@@ -20,11 +20,40 @@
 # mode
 
 # Change these if they do not match your installation
-CONF_DIR=@sysconfdir@/xrdp
+CONF_DIR=@sysconfdir@/@sysconfsubdir@
 XRDP_INI="$CONF_DIR"/xrdp.ini
 SESMAN_INI="$CONF_DIR"/sesman.ini
 RSAKEYS_INI="$CONF_DIR"/rsakeys.ini
 DROPPRIV=@pkglibexecdir@/xrdp-droppriv
+
+# Helper functions to print colored tag like "[  OK  ]"
+
+print_ok()
+{
+    if [ -t 1 ]; then
+        printf "\033[1m[  \033[1;32mOK\033[0m  ]\033[0m "
+    else
+        printf "[  OK  ] "
+    fi
+}
+
+print_warn()
+{
+    if [ -t 1 ]; then
+        printf "\033[1m[ \033[1;33mWARN\033[0m ]\033[0m "
+    else
+        printf "[ WARN ] "
+    fi
+}
+
+print_ng()
+{
+    if [ -t 1 ]; then
+        printf "\033[1m[  \033[1;31mNG\033[0m  ]\033[0m "
+    else
+        printf "[  NG  ] "
+    fi
+}
 
 # -----------------------------------------------------------------------------
 # G E T   I N I   V A L U E
@@ -51,6 +80,7 @@ GetIniValue()
 # -----------------------------------------------------------------------------
 
 if [ "$(id -u)" != 0 ]; then
+    print_ng
     echo "** Must run this script as root" >&2
     exit 1
 fi
@@ -92,37 +122,45 @@ echo
 
 # Basic checks on runtime user/group
 if [ -z "$runtime_user" ] && [ -z "$runtime_group" ]; then
-    echo "-Info- This system is not configured to run xrdp without privilege"
+    print_warn
+    echo "This system is not configured to run xrdp without privilege"
     exit 0
 fi
 
 if [ -z "$runtime_user" ] || [ -z "$runtime_group" ]; then
-    echo "-Error- Both 'runtime_user' and 'runtime_group' must be set"
+    print_ng
+    echo "Both 'runtime_user' and 'runtime_group' must be set"
     errors=$(( errors + 1 ))
     exit 1
 fi
 
 if getent passwd "$runtime_user" >/dev/null ; then
-    echo "-Info- runtime_user '$runtime_user' appears to exist"
+    print_ok
+    echo "runtime_user '$runtime_user' appears to exist"
 else
-    echo "-Error- runtime_user '$runtime_user' does not exist"
+    print_ng
+    echo "runtime_user '$runtime_user' does not exist"
     errors=$(( errors + 1 ))
 fi
 
 GID=
 if getent group "$runtime_group" >/dev/null ; then
-    echo "-Info- runtime_group '$runtime_group' appears to exist"
+    print_ok
+    echo "runtime_group '$runtime_group' appears to exist"
     GID=$(getent group xrdp | cut -d: -f3)
 else
-    echo "-Error- runtime_group '$runtime_group' does not exist"
+    print_ng
+    echo "runtime_group '$runtime_group' does not exist"
     errors=$(( errors + 1 ))
 fi
 
 # Groups agree between sesman and xrdp?
 if [ "$runtime_user" = "$SessionSockdirGroup" ]; then
-    echo "-Info- xrdp.ini and sesman.ini agree on group ownership"
+    print_ok
+    echo "xrdp.ini and sesman.ini agree on group ownership"
 else
-    echo "-Error- xrdp.ini and sesman.ini do not agree on group ownership"
+    print_ng
+    echo "xrdp.ini and sesman.ini do not agree on group ownership"
     errors=$(( errors + 1 ))
 fi
 
@@ -144,24 +182,29 @@ if [ -e $RSAKEYS_INI ]; then
                 set -- $(stat -c "%a %u %g" $RSAKEYS_INI)
         esac
         if [ "$1/$2/$3" = "640/0/$GID" ]; then
-            echo "-Info- $RSAKEYS_INI has correct permissions"
+            print_ok
+            echo "$RSAKEYS_INI has correct permissions"
         else
             if [ "$1" != 640 ]; then
-                echo "-Error- $RSAKEYS_INI should have permissions  -rw-r-----"
+                print_ng
+                echo "$RSAKEYS_INI should have permissions  -rw-r-----"
                 errors=$(( errors + 1 ))
             fi
             if [ "$2" != 0 ]; then
-                echo "-Error- $RSAKEYS_INI should be owned by root"
+                print_ng
+                echo "$RSAKEYS_INI should be owned by root"
                 errors=$(( errors + 1 ))
             fi
             if [ "$3" != "$GID" ]; then
-                echo "-Error- $RSAKEYS_INI should be in the $runtime_group group"
+                print_ng
+                echo "$RSAKEYS_INI should be in the $runtime_group group"
                 errors=$(( errors + 1 ))
             fi
         fi
     fi
 else
-    echo "-Error- $RSAKEYS_INI does not exist"
+    print_ng
+    echo "$RSAKEYS_INI does not exist"
     errors=$(( errors + 1 ))
 fi
 
@@ -172,26 +215,32 @@ fi
 # group to obtain access to /etc/ssl/private/ssl-cert-snakeoil.key
 for file in "$certificate" "$key_file"; do
     if ! [ -e $file ]; then
-        echo "-Error- $file does not exist"
+        print_ng
+        echo "$file does not exist"
         errors=$(( errors + 1 ))
     elif ! $DROPPRIV "$runtime_user" "$runtime_group" sh -c '[ -r '"$file"' ]'
     then
-        echo "-Error- $file is not readable by $runtime_user:$runtime_group"
+        print_ng
+        echo "$file is not readable by $runtime_user:$runtime_group"
         errors=$(( errors + 1 ))
     elif $DROPPRIV "$runtime_user" "$runtime_group" sh -c '[ -w '"$file"' ]'
     then
-        echo "-Error- $file is writeable by $runtime_user:$runtime_group"
+        print_ng
+        echo "$file is writeable by $runtime_user:$runtime_group"
         errors=$(( errors + 1 ))
     else
-        echo "-Info- $file is read-only for $runtime_user:$runtime_group"
+        print_ok
+        echo "$file is read-only for $runtime_user:$runtime_group"
     fi
 done
 
 echo
 if [ $errors -eq 0 ]; then
+    print_ok
     echo "-Summary- Permissions appear to be correct to run xrdp unprivileged"
     status=0
 else
+    print_ng
     echo "-Summary- $errors error(s) found. Please correct these and try again"
     status=1
 fi

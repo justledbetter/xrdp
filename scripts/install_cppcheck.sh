@@ -149,8 +149,12 @@ fi
             # Cppcheck 2.8 added optional support for utilizing Boost
             make_args="$make_args CPPFLAGS=-DHAVE_BOOST"
             ;;
-        2.*)
+        2.15.*)
             # Cppcheck 2.15 doesn't seem to define FILESDIR if CPPFLAGS is set
+            ;;
+        2.*)
+            # Cppcheck 2.16 (and later) fixes the HAVE_BOOST issue
+            make_args="$make_args CPPFLAGS=-DHAVE_BOOST"
             ;;
     esac
 

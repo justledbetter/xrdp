@@ -71,7 +71,7 @@ static struct trans *g_audio_c_trans_out = 0; /* connection */
 static struct trans *g_audio_l_trans_in = 0;  /* listener */
 static struct trans *g_audio_c_trans_in = 0;  /* connection */
 
-static int    g_training_sent_time = 0;
+static unsigned int g_training_sent_time = 0;
 static int    g_cBlockNo = 0;
 static int    g_bytes_in_stream = 0;
 struct fifo  *g_in_fifo;
@@ -86,7 +86,7 @@ static struct stream *g_stream_incoming_packet = NULL;
 #define MAX_BBUF_SIZE (1024 * 16)
 static char g_buffer[MAX_BBUF_SIZE];
 static int g_buf_index = 0;
-static int g_sent_time[256];
+static unsigned int g_sent_time[256];
 
 static int g_bbuf_size = 1024 * 8; /* may change later */
 
@@ -341,7 +341,7 @@ sound_send_training(void)
 {
     struct stream *s;
     int bytes;
-    int time;
+    unsigned int time;
     char *size_ptr;
 
     make_stream(s);
@@ -349,7 +349,7 @@ sound_send_training(void)
     out_uint16_le(s, SNDC_TRAINING);
     size_ptr = s->p;
     out_uint16_le(s, 0); /* size, set later */
-    time = g_time3();
+    time = g_get_elapsed_ms();
     g_training_sent_time = time;
     out_uint16_le(s, time);
     out_uint16_le(s, 1024);
@@ -885,7 +885,7 @@ sound_send_wave_data_chunk(char *data, int data_bytes)
 {
     struct stream *s;
     int bytes;
-    int time;
+    unsigned int time;
     int format_index;
     char *size_ptr;
 
@@ -912,7 +912,7 @@ sound_send_wave_data_chunk(char *data, int data_bytes)
     out_uint16_le(s, SNDC_WAVE);
     size_ptr = s->p;
     out_uint16_le(s, 0); /* size, set later */
-    time = g_time3();
+    time = g_get_elapsed_ms();
     out_uint16_le(s, time);
     out_uint16_le(s, format_index); /* wFormatNo */
     g_cBlockNo++;
@@ -1040,7 +1040,7 @@ sound_process_training(struct stream *s, int size)
 {
     int time_diff;
 
-    time_diff = g_time3() - g_training_sent_time;
+    time_diff = g_get_elapsed_ms() - g_training_sent_time;
     LOG(LOG_LEVEL_INFO, "sound_process_training: round trip time %u", time_diff);
     return 0;
 }
@@ -1052,12 +1052,12 @@ sound_process_wave_confirm(struct stream *s, int size)
 {
     int wTimeStamp;
     int cConfirmedBlockNo;
-    int time;
+    unsigned int time;
     int time_diff;
     int index;
     int acc;
 
-    time = g_time3();
+    time = g_get_elapsed_ms();
     in_uint16_le(s, wTimeStamp);
     in_uint8(s, cConfirmedBlockNo);
     time_diff = time - g_sent_time[cConfirmedBlockNo & 0xff];
@@ -1095,13 +1095,13 @@ static int
 process_pcm_message(int id, int size, struct stream *s)
 {
     static int sending_silence = 0;
-    static int silence_start_time = 0;
+    static unsigned int silence_start_time = 0;
     switch (id)
     {
         case 0:
             if ((g_client_does_fdk_aac || g_client_does_mp3lame) && sending_silence)
             {
-                if ((g_time3() - silence_start_time) < (int)g_cfg->msec_do_not_send)
+                if ((g_get_elapsed_ms() - silence_start_time) < g_cfg->msec_do_not_send)
                 {
                     /* do not send data within msec_do_not_send msec after SNDC_CLOSE is sent, to avoid stutter. setting from sesman.ini */
                     return 0;
@@ -1119,7 +1119,7 @@ process_pcm_message(int id, int size, struct stream *s)
                 if (buf != NULL)
                 {
                     int i;
-                    silence_start_time = g_time3();
+                    silence_start_time = g_get_elapsed_ms();
                     sending_silence = 1;
                     for (i = 0; i < send_silence_times; i++)
                     {

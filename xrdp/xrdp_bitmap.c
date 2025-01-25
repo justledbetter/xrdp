@@ -29,7 +29,10 @@
 #include "log.h"
 #include "string_calls.h"
 
-
+// For a very few key functions, using the keysym is preferable to the
+// raw scancode. Here are defines to avoid pulling an X11 dependency
+// into the xrdp:-
+#define XK_BackSpace 0xff08
 
 
 static const unsigned int g_crc_table[256] =
@@ -1150,6 +1153,13 @@ xrdp_bitmap_def_proc(struct xrdp_bitmap *self, int msg,
         {
             int scan_code = SCANCODE_FROM_KBD_EVENT(param1, param2);
             int num_lock = self->wm->num_lock;
+            /* We may need a keysym or a printable character for the key */
+            struct xrdp_key_info *ki = get_key_info_from_kbd_event
+                                       (param2, param1, self->wm->keys,
+                                        self->wm->caps_lock,
+                                        self->wm->num_lock, self->wm->scroll_lock,
+                                        &(self->wm->keymap));
+
             /* left or up arrow */
             if ((scan_code == SCANCODE_LEFT_ARROW_KEY) ||
                     (scan_code == SCANCODE_UP_ARROW_KEY) ||
@@ -1174,8 +1184,9 @@ xrdp_bitmap_def_proc(struct xrdp_bitmap *self, int msg,
                     xrdp_bitmap_invalidate(self, 0);
                 }
             }
-            /* backspace */
-            else if (scan_code == SCANCODE_BACKSPACE_KEY)
+            /* backspace. Test keysym rather than scan code, so keys
+             * other than SCANCODE_BACKSPACE_KEY can generate backspace */
+            else if (ki != NULL && ki->sym == XK_BackSpace)
             {
                 n = utf8_char_count(self->caption1);
 
@@ -1229,10 +1240,7 @@ xrdp_bitmap_def_proc(struct xrdp_bitmap *self, int msg,
             }
             else
             {
-                char32_t c = get_char_from_kbd_event
-                             (param2, param1, self->wm->keys, self->wm->caps_lock,
-                              self->wm->num_lock, self->wm->scroll_lock,
-                              &(self->wm->keymap));
+                char32_t c = (ki == NULL) ? 0 : ki->chr;
                 // Add a printing character to the string. If successful,
                 // bump the edit position and re-display the string
                 if (c >= ' ' &&

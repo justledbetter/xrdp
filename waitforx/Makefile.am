@@ -4,6 +4,7 @@ pkglibexec_PROGRAMS = \
 AM_LDFLAGS = $(X_LIBS) -lX11 -lXrandr
 
 AM_CPPFLAGS = \
+  -DXRDP_SOCKET_ROOT_PATH=\"${socketdir}\" \
   -I$(top_srcdir)/sesman/sesexec \
   -I$(top_srcdir)/common
 

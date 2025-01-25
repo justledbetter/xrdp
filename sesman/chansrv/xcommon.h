@@ -29,8 +29,6 @@
 typedef void (*x_server_fatal_cb_type)(void);
 
 int
-xcommon_get_local_time(void);
-int
 xcommon_init(void);
 int
 xcommon_get_wait_objs(tbus *objs, int *count, int *timeout);

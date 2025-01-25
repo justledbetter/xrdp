@@ -14,6 +14,56 @@ START_TEST(test_tconfig_gfx_always_success)
 }
 END_TEST
 
+START_TEST(test_tconfig_gfx_h264_oh264)
+{
+    struct xrdp_tconfig_gfx gfxconfig;
+    tconfig_load_gfx(GFXCONF_STUBDIR "/gfx_h264_encoder_openh264.toml", &gfxconfig);
+
+    /* H.264 encoder is OpenH264 */
+    ck_assert_int_eq(gfxconfig.h264_encoder, XTC_H264_OPENH264);
+}
+
+START_TEST(test_tconfig_gfx_h264_x264)
+{
+    struct xrdp_tconfig_gfx gfxconfig;
+    tconfig_load_gfx(GFXCONF_STUBDIR "/gfx_h264_encoder_x264.toml", &gfxconfig);
+
+    /* H.264 encoder is x264 */
+    ck_assert_int_eq(gfxconfig.h264_encoder, XTC_H264_X264);
+}
+
+START_TEST(test_tconfig_gfx_h264_undefined)
+{
+    struct xrdp_tconfig_gfx gfxconfig;
+    tconfig_load_gfx(GFXCONF_STUBDIR "/gfx_h264_encoder_undefined.toml", &gfxconfig);
+
+    /* H.264 encoder is x264 if undefined */
+    ck_assert_int_eq(gfxconfig.h264_encoder, XTC_H264_X264);
+}
+
+START_TEST(test_tconfig_gfx_h264_invalid)
+{
+    struct xrdp_tconfig_gfx gfxconfig;
+    tconfig_load_gfx(GFXCONF_STUBDIR "/gfx_h264_encoder_invalid.toml", &gfxconfig);
+
+    /* H.264 encoder is x264 if invalid, unknown encoder specified */
+    ck_assert_int_eq(gfxconfig.h264_encoder, XTC_H264_X264);
+}
+
+START_TEST(test_tconfig_gfx_oh264_load_basic)
+{
+    struct xrdp_tconfig_gfx gfxconfig;
+    int rv = tconfig_load_gfx(GFXCONF_STUBDIR "/gfx.toml", &gfxconfig);
+
+    ck_assert_int_eq(rv, 0);
+
+    /* default */
+    ck_assert_int_eq(gfxconfig.openh264_param[0].EnableFrameSkip, 0);
+    ck_assert_int_eq(gfxconfig.openh264_param[0].TargetBitrate, 20000000);
+    ck_assert_int_eq(gfxconfig.openh264_param[0].MaxBitrate, 0);
+    ck_assert_float_eq(gfxconfig.openh264_param[0].MaxFrameRate, 60.0);
+}
+
 START_TEST(test_tconfig_gfx_x264_load_basic)
 {
     struct xrdp_tconfig_gfx gfxconfig;
@@ -27,7 +77,7 @@ START_TEST(test_tconfig_gfx_x264_load_basic)
     ck_assert_str_eq(gfxconfig.x264_param[0].profile, "main");
     ck_assert_int_eq(gfxconfig.x264_param[0].vbv_max_bitrate, 0);
     ck_assert_int_eq(gfxconfig.x264_param[0].vbv_buffer_size, 0);
-    ck_assert_int_eq(gfxconfig.x264_param[0].fps_num, 24);
+    ck_assert_int_eq(gfxconfig.x264_param[0].fps_num, 60);
     ck_assert_int_eq(gfxconfig.x264_param[0].fps_den, 1);
 
 }
@@ -110,6 +160,15 @@ make_suite_tconfig_load_gfx(void)
     tcase_add_test(tc_tconfig_load_gfx, test_tconfig_gfx_codec_order);
     tcase_add_test(tc_tconfig_load_gfx, test_tconfig_gfx_missing_file);
     tcase_add_test(tc_tconfig_load_gfx, test_tconfig_gfx_missing_h264);
+
+    /* OpenH264 */
+    tcase_add_test(tc_tconfig_load_gfx, test_tconfig_gfx_oh264_load_basic);
+
+    /* H.264 encoder */
+    tcase_add_test(tc_tconfig_load_gfx, test_tconfig_gfx_h264_oh264);
+    tcase_add_test(tc_tconfig_load_gfx, test_tconfig_gfx_h264_x264);
+    tcase_add_test(tc_tconfig_load_gfx, test_tconfig_gfx_h264_undefined);
+    tcase_add_test(tc_tconfig_load_gfx, test_tconfig_gfx_h264_invalid);
 
     suite_add_tcase(s, tc_tconfig_load_gfx);
 

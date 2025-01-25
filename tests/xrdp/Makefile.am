@@ -21,13 +21,18 @@ EXTRA_DIST = \
   test_not4_24bit.bmp \
   test1.jpg \
   test_alpha_blend.png \
-  gfx/gfx.toml\
-  gfx/gfx_codec_order_undefined.toml \
-  gfx/gfx_codec_h264_preferred.toml \
+  gfx/gfx.toml \
   gfx/gfx_codec_h264_only.toml \
-  gfx/gfx_codec_rfx_preferred.toml \
+  gfx/gfx_codec_h264_preferred.toml \
+  gfx/gfx_codec_order_undefined.toml \
+  gfx/gfx_codec_rfx_only.toml \
   gfx/gfx_codec_rfx_preferred_odd.toml \
-  gfx/gfx_codec_rfx_only.toml
+  gfx/gfx_codec_rfx_preferred.toml \
+  gfx/gfx_h264_encoder_invalid.toml \
+  gfx/gfx_h264_encoder_openh264.toml \
+  gfx/gfx_h264_encoder_undefined.toml \
+  gfx/gfx_h264_encoder_x264.toml \
+  gfx/gfx_missing_h264.toml
 
 TESTS = test_xrdp
 check_PROGRAMS = test_xrdp
@@ -84,4 +89,11 @@ AM_CPPFLAGS += -DXRDP_X264 $(XRDP_X264_CFLAGS)
 test_xrdp_LDADD += \
     $(top_builddir)/xrdp/xrdp_encoder_x264.o \
     $(XRDP_X264_LIBS)
+endif
+
+if XRDP_OPENH264
+AM_CPPFLAGS += -DXRDP_X264 $(XRDP_OPENH264_CFLAGS)
+test_xrdp_LDADD += \
+    $(top_builddir)/xrdp/xrdp_encoder_openh264.o \
+    $(XRDP_OPENH264_LIBS)
 endif

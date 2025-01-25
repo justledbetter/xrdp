@@ -393,9 +393,26 @@ int      g_getgroup_info(const char *groupname, int *gid);
  * Primary group of username is also checked
  */
 int      g_check_user_in_group(const char *username, int gid, int *ok);
-int      g_time1(void);
-int      g_time2(void);
-int      g_time3(void);
+
+/**
+ * Gets elapsed milliseconds since some arbitrary point in the past
+ *
+ * The returned value is unaffected by leap-seconds or time zone changes.
+ *
+ * @return elaped ms since some arbitrary point
+ *
+ * Calculate the duration of a task by calling this routine before and
+ * after the task, and subtracting the two values.
+ *
+ * The value wraps every so often (every 49.7 days on a 32-bit system),
+ * but as we are using unsigned arithmetic, the difference of any of these
+ * two values can be used to calculate elapsed time, whether-or-not a wrap
+ * occurs during the interval - provided of course the time being measured
+ * is less than the total wrap-around interval.
+ */
+unsigned int
+g_get_elapsed_ms(void);
+
 int      g_save_to_bmp(const char *filename, char *data, int stride_bytes,
                        int width, int height, int depth, int bits_per_pixel);
 void    *g_shmat(int shmid);

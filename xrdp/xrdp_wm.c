@@ -110,7 +110,19 @@ xrdp_wm_create(struct xrdp_process *owner,
     self->log->auto_free = 1;
     self->mm = xrdp_mm_create(self);
     /* this will use built in keymap or load from file */
-    get_keymaps(self->session->client_info->keylayout, &(self->keymap));
+    if (client_info->xrdp_keyboard_overrides.layout > 0 &&
+            client_info->xrdp_keyboard_overrides.layout != client_info->keylayout)
+    {
+        LOG(LOG_LEVEL_INFO, "overrode keylayout %08X with %08X",
+            client_info->keylayout,
+            client_info->xrdp_keyboard_overrides.layout);
+        get_keymaps(client_info->xrdp_keyboard_overrides.layout,
+                    &(self->keymap));
+    }
+    else
+    {
+        get_keymaps(client_info->keylayout, &(self->keymap));
+    }
     xrdp_wm_set_login_state(self, WMLS_RESET);
     self->target_surface = self->screen;
     self->current_surface_index = 0xffff; /* screen */

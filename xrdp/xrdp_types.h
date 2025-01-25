@@ -462,6 +462,9 @@ struct xrdp_key_info
 
 struct xrdp_keymap
 {
+    // Are the caps lock maps populated?
+    int caps_lock_supported;
+
     // These arrays are indexed by a return from scancode_to_index()
     struct xrdp_key_info keys_noshift[SCANCODE_MAX_INDEX + 1];
     struct xrdp_key_info keys_shift[SCANCODE_MAX_INDEX + 1];
@@ -586,7 +589,7 @@ struct xrdp_wm
     struct xrdp_tconfig_gfx *gfx_config;
 
     struct xrdp_region *screen_dirty_region;
-    int last_screen_draw_time;
+    unsigned int last_screen_draw_time;
 };
 
 /* rdp process */

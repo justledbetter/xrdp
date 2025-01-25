@@ -41,7 +41,7 @@ The key map information is stored in the file named \fIoutfile\fP.
 
 .SH "FILES"
 .TP
-.I @sysconfdir@/xrdp/km-XXXXXXXX.toml
+.I @sysconfdir@/@sysconfsubdir@/km-XXXXXXXX.toml
 Files containing the keyboard mapping for country and language \fIXXXXXXXX\fP.
 \fIXXXXXXXX\fP is a 8 digit hexadecimal number, representing the \fIinput
 locale identifier\fP.

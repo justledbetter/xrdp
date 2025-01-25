@@ -274,7 +274,7 @@ clipboard_get_file(const char *file, int bytes)
         list_add_item(g_files_list, (tintptr)cfi);
         cfi->size = g_file_get_size(full_fn);
         cfi->flags = CB_FILE_ATTRIBUTE_ARCHIVE;
-        cfi->time = (g_time1() + CB_EPOCH_DIFF) * 10000000LL;
+        cfi->time = (time(NULL) + CB_EPOCH_DIFF) * 10000000LL;
         LOG_DEVEL(LOG_LEVEL_DEBUG, "ok filename [%s] pathname [%s] size [%d]",
                   cfi->filename, cfi->pathname, cfi->size);
         result = 0;

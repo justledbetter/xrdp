@@ -61,4 +61,10 @@
 #define XRDP_X11RDP_STR       XRDP_SOCKET_PATH "/" XRDP_X11RDP_BASE_STR
 #define XRDP_DISCONNECT_STR   XRDP_SOCKET_PATH "/" XRDP_DISCONNECT_BASE_STR
 
+/* Where X11 stores its Unix Domain Sockets (unlikely to change) */
+#define X11_UNIX_SOCKET_DIRECTORY "/tmp/.X11-unix"
+
+/*  fullpath to an X11 display socket */
+#define X11_UNIX_SOCKET_STR X11_UNIX_SOCKET_DIRECTORY "/X%d"
+
 #endif

@@ -3,6 +3,7 @@ EXTRA_DIST = \
   readme.txt
 
 AM_CPPFLAGS = \
+  -DXRDP_CFG_PATH=\"${sysconfdir}/${sysconfsubdir}\" \
   -I$(top_srcdir)/common
 
 AM_CFLAGS = $(X_CFLAGS)

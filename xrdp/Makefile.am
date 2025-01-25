@@ -4,7 +4,7 @@ EXTRA_DIST = \
   xrdpwin.c
 
 AM_CPPFLAGS = \
-  -DXRDP_CFG_PATH=\"${sysconfdir}/xrdp\" \
+  -DXRDP_CFG_PATH=\"${sysconfdir}/${sysconfsubdir}\" \
   -DXRDP_SBIN_PATH=\"${sbindir}\" \
   -DXRDP_SHARE_PATH=\"${datadir}/xrdp\" \
   -DXRDP_PID_PATH=\"${localstatedir}/run\" \
@@ -31,6 +31,13 @@ AM_CPPFLAGS += -DXRDP_X264
 AM_CPPFLAGS += $(XRDP_X264_CFLAGS)
 XRDP_EXTRA_LIBS += $(XRDP_X264_LIBS)
 XRDP_EXTRA_SOURCES += xrdp_encoder_x264.c xrdp_encoder_x264.h
+endif
+
+if XRDP_OPENH264
+AM_CPPFLAGS += -DXRDP_OPENH264
+AM_CPPFLAGS += $(XRDP_OPENH264_CFLAGS)
+XRDP_EXTRA_LIBS += $(XRDP_OPENH264_LIBS)
+XRDP_EXTRA_SOURCES += xrdp_encoder_openh264.c xrdp_encoder_openh264.h
 endif
 
 if XRDP_PIXMAN
@@ -85,7 +92,7 @@ xrdp_LDADD = \
   $(IMLIB2_LIBS) \
   $(XRDP_EXTRA_LIBS)
 
-xrdpsysconfdir=$(sysconfdir)/xrdp
+xrdpsysconfdir=$(sysconfdir)/$(sysconfsubdir)
 
 if MACOS
 lib_extension = dylib

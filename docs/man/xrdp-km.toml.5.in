@@ -4,7 +4,7 @@
 \fBxrdp-km.toml\fR \- \fBxrdp\fP key mapping file
 
 .SH "DESCRIPTION"
-Key mapping files are located at \fB@sysconfdir@/xrdp/km-XXXXXXXX.toml\fP
+Key mapping files are located at \fB@sysconfdir@/@sysconfsubdir@/km-XXXXXXXX.toml\fP
 where \fBXXXXXXXX\fP is the input locale identifier sent by the RDP client.
 
 The key mapping files are used to translate RDP scan codes into one of

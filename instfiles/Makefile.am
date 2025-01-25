@@ -13,6 +13,7 @@ CLEANFILES= \
 SUBST_VARS = sed \
    -e 's|@sbindir[@]|$(sbindir)|g' \
    -e 's|@sysconfdir[@]|$(sysconfdir)|g' \
+   -e 's|@sysconfsubdir[@]|$(sysconfsubdir)|g' \
    -e 's|@localstatedir[@]|$(localstatedir)|g'
 
 subst_verbose = $(subst_verbose_@AM_V@)
@@ -26,9 +27,10 @@ SUFFIXES = .in
 #
 # files for all platforms
 #
-startscriptdir=$(sysconfdir)/xrdp
+startscriptdir=$(sysconfdir)/$(sysconfsubdir)
 
 dist_startscript_DATA = \
+  km-00000405.toml \
   km-00000406.toml \
   km-00000407.toml \
   km-00000409.toml \
@@ -51,6 +53,7 @@ dist_startscript_DATA = \
   km-00000816.toml \
   km-0000100c.toml \
   km-00010409.toml \
+  km-00060409.toml \
   km-19360409.toml
 
 #

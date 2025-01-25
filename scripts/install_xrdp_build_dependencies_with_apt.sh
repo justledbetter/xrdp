@@ -90,7 +90,7 @@ in
                 PACKAGES="$PACKAGES \
                     $PACKAGES_AMD64_MIN \
                     $LIBFREETYPE_DEV \
-                    libfuse-dev \
+                    libfuse3-dev \
                     libjpeg-dev \
                     libmp3lame-dev \
                     libfdk-aac-dev \
@@ -98,7 +98,8 @@ in
                     libimlib2-dev \
                     libopus-dev \
                     libpixman-1-dev \
-                    libx264-dev"
+                    libx264-dev \
+                    libopenh264-dev"
                 ;;
             *)
                 echo "unsupported feature set: $FEATURE_SET"
@@ -115,15 +116,15 @@ in
         # build support tool.
         # - Ubuntu 18.04 -> 20.04
         #       Removed fdk-aac-dev:i386 and libfuse-dev:i386
+        # - Ubuntu 24.04.1
+        #       Removed libibus-1.0-dev:i386 and libimlib2-dev:i386
         PACKAGES="$PACKAGES \
             g++-multilib \
             gcc-multilib \
             $LIBFREETYPE_DEV:i386 \
             libgl1-mesa-dev:i386 \
             libglu1-mesa-dev:i386 \
-            libibus-1.0-dev:i386 \
             libjpeg-dev:i386 \
-            libimlib2-dev:i386 \
             libmp3lame-dev:i386 \
             libopus-dev:i386 \
             libpam0g-dev:i386 \
