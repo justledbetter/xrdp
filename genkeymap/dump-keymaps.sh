@@ -77,6 +77,7 @@ kbgen 60409 "en-US"       "$os" -model pc104 -layout us -variant colemak
 kbgen 040a "es-ES_tradnl" "$os" -model pc105 -layout es
 kbgen 040b "fi-FI"        "$os" -model pc105 -layout 'fi'
 kbgen 040c "fr-FR"        "$os" -model pc105 -layout fr
+kbgen 040e "hu-HU"        "$os" -model pc105 -layout hu
 kbgen 0410 "it-IT"        "$os" -model pc104 -layout it
 kbgen 0411 "ja-JP"        "$os" -model pc105 -layout jp -variant OADG109A
 kbgen 0412 "ko-KR"        "$os" -model pc105 -layout kr

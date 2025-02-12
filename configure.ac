@@ -479,7 +479,7 @@ fi
 if test "x$enable_mp3lame" = "xyes"
 then
   AC_CHECK_HEADER([lame/lame.h], [],
-    [AC_MSG_ERROR([please install libmp3lame-dev or lamemp3-devel])])
+    [AC_MSG_ERROR([please install libmp3lame-dev or lame-devel])])
 fi
 
 # checking for ibus includes
